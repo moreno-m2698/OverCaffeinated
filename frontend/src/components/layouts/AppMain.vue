@@ -22,7 +22,6 @@ const K = Math.log(2) / HL; // Units of per minutes
 
 
 // This is tightly coupled to appliction being built for production
-// TODO: adjust build path
 // TODO: create a drinks mock
 onMounted(async () => {
     try {
