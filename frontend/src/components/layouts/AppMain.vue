@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted } from "vue";
+import axios from 'axios'
 
-const drinks = ref<[any]>([]);
+const drinks = ref<any[]>([]);
 const drinkName = ref("");
 const drinkCaffeine = ref(200);
 const initTime = ref(new Date())
 const tcaffeine = ref(0);
+const drinkData = ref<any[]>([]);
+
+
 // NIH: https://www.ncbi.nlm.nih.gov/books/NBK223808/#:~:text=Structurally%2C%20caffeine%20(and%20the%20other,individuals%20is%20about%205%20hours.
 // biological half-life of 5 hrs
 
@@ -14,7 +18,26 @@ const K = Math.log(2) / HL; // Units of per minutes
 
 // Wikipedia(biological half-life): https://en.wikipedia.org/wiki/Biological_half-life
 
-// ui look at stock apps, health apps, and animal crossing
+// ui look at stocks apps, health apps, and animal crossing
+
+
+// This is tightly coupled to appliction being built for production
+// TODO: adjust build path
+// TODO: create a drinks mock
+onMounted(async () => {
+    try {
+        const response = await axios.get('/drinks/')
+        drinkData.value = response.data
+        console.log("Successfully grabbed data")
+        
+    } catch (error) {
+        console.error('Failed to fetch data:', error)
+    }
+})
+
+function alertGetDrinks() {
+    alert(drinkData.value)
+}
 
 function currentCaffeine() {
     const deltaT = (Date.now() - initTime.value.getTime()) / (1000 * 60) // Unit: minutes
@@ -45,7 +68,7 @@ const totalCaffeine = computed(() => {
 watch(drinks,
     () => {
         console.log("Current drinks: " + drinks.value)
-        alert("Current drinks: " + drinks.value)
+        console.log(new Date())
     },
     { deep: true }
 )
@@ -95,6 +118,7 @@ watch(drinks,
             <button @click.prevent="addDrink">Submit</button>
         </form>
         <button @click.prevent="currentCaffeine">Update</button>
+        <button @click.prevent="alertGetDrinks">Drink Alert</button>
     </body>
 </template>
 
