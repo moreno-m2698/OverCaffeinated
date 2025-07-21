@@ -16,3 +16,15 @@ def read_index():
     return FileResponse("static/dist/index.html")
 
 # uvicorn main:app --reload
+# fastapi dev main.py
+
+class Drink:
+    def __init__(self, id, name, caffeine, date):
+        self.id = id
+        self.name = name
+        self.caffeine = caffeine
+        self.date = date
+
+@app.get("/drinks")
+def get_drinks():
+    return []
