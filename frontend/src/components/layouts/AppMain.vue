@@ -17,11 +17,6 @@ type Drink = {
   date: string
 }
 
-const drinks = ref<Drink[]>([]);
-const drinkName = ref("");
-const drinkCaffeine = ref(200);
-
-
 const today = new Date();
 today.setUTCHours(0);
 today.setUTCMinutes(0);
@@ -30,11 +25,16 @@ today.setUTCMilliseconds(0);
 
 const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000)
 const tomorrow = new Date(today.valueOf() + 24 * 60 * 60 * 1000)
+
 const mockDrinkData = [
   { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
   { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
   { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
 ];
+
+const drinks = ref<Drink[]>(mockDrinkData);
+const drinkName = ref("");
+const drinkCaffeine = ref(200);
 
 const mockUser = { // TODO: User is tied to app instance will need to import with props in final
   id: 1,
@@ -137,7 +137,6 @@ function currentCaffeineAlert() {
 
 onMounted(async () => {
   if (import.meta.env.MODE === "development") {
-    drinks.value = mockDrinkData;
     console.log("Using mock data for development");
   } else {
     try {
