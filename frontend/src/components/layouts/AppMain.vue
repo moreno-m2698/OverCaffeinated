@@ -140,7 +140,7 @@ onMounted(async () => {
     console.log("Using mock data for development");
   } else {
     try {
-      const response = await axios.get("/drinks/");
+      const response = await axios.get("/api/drinks/");
       drinks.value = response.data;
       console.log("Fetched drink data from API");
     } catch (error) {

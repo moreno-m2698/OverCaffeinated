@@ -1,9 +1,11 @@
-import sqlite3
-
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+
+import datetime
 import os
+import sqlite3
+
 
 app = FastAPI()
 
@@ -25,6 +27,15 @@ class Drink:
         self.caffeine = caffeine
         self.date = date
 
-@app.get("/drinks")
+@app.get("/api/drinks")
 def get_drinks():
+    today = datetime.date.today()
+    dt_today = datetime.datetime.fromisoformat()
+
+    #ISO date time: YYYY-MM-DDTHH:mm:ss.SSSZ
+    # mockDrinkData = [
+    #     { id: 1, "name": "Espresso", "caffeine": 80, "date": yesterday.toISOString() },
+    #     { id: 2, "name": "Latte", caffeine: 100, date: yesterday.toISOString() },
+    #     { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
+    # ]
     return []
