@@ -6,16 +6,9 @@ import VueApexCharts from "vue3-apexcharts";
 const drinks = ref<any[]>([]);
 const drinkName = ref("");
 const drinkCaffeine = ref(200);
-const initTime = ref(new Date());
 const drinkData = ref<any[]>([]);
-const user = ref({});
+const user = ref<any>({});
 
-const yesterday = new Date(initTime.value.valueOf() - 24 * 60 * 60 * 1000)
-const mockDrinkData = [
-  { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
-  { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
-  { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
-];
 
 const today = new Date();
 today.setUTCHours(0);
@@ -23,11 +16,19 @@ today.setUTCMinutes(0);
 today.setUTCSeconds(0);
 today.setUTCMilliseconds(0);
 
+const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000)
+const tomorrow = new Date(today.valueOf() + 24 * 60 * 60 * 1000)
+const mockDrinkData = [
+  { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
+  { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
+  { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
+];
+
 const mockUser = { // TODO: User is tied to app instance will need to import with props in final
   id: 1,
   username: "HelloWorld",
-  observationTime: today.toISOString(),
-  observationCaffeine: 400
+  observationTime: today.valueOf(),
+  observationCaffeine: 200
 }
 
 const chartOptions = ref({
@@ -37,7 +38,7 @@ const chartOptions = ref({
   xaxis: {
     type: 'datetime',
     labels: {
-      datetimeFormatter: {
+      datetimeFormatter: { // This is formatted to utc
         year: 'yyyy',
         month: "MMM 'yy",
         day: 'dd MMM',
@@ -49,13 +50,13 @@ const chartOptions = ref({
   }
 })
 
-function getInitialData() {
-  const HL = 6 * 60 * 60 * 1000; // half-life in milliseconds
-  const K = Math.log(2) / HL; // Caffeine decay constant
+const HL = 6 * 60 * 60 * 1000; // half-life in milliseconds
+const K = Math.log(2) / HL; // Caffeine decay constant
+function calcCaffeine(c0: number, t: number) {
+  return c0 * Math.exp(-K * t);
+}
 
-  function calcCaffeine(c0: number, t: number) {
-    return c0 * Math.exp(-K * t);
-  }
+function getInitialData() {
 
   const data = []
   const len15Min = 1000 * 60 * 15
@@ -79,6 +80,44 @@ const series = ref([
 
 //TODO:  A join table can be created to plot caffeine over time
 
+function addDrink() {
+  const now = new Date();
+
+  drinks.value.push({
+    id: drinks.value.length + 1,
+    name: drinkName.value,
+    caffeine: drinkCaffeine.value,
+    date: now.toISOString(),
+  });
+
+  const currentCaffeine = calcCaffeine(user.value.observationCaffeine, now.valueOf() - user.value.observationTime) + drinkCaffeine.value
+  const head = series.value[0].data.filter((p) => p.x < now.valueOf())
+
+  user.value.observationCaffeine = currentCaffeine
+  user.value.observationTime = now.valueOf()
+
+  const remainingTime = tomorrow.valueOf() - now.valueOf();
+  const init = Math.ceil(remainingTime / (1000 * 60 * 15))
+  const tail = []
+  const len15Min = 1000 * 60 * 15
+
+  for (let i = init; i <= 24 * 4; i++) {
+    tail.push({
+      x: (today.valueOf() + (len15Min * i)),
+      y: calcCaffeine(currentCaffeine, (i - init) * len15Min).toFixed(2)
+    })
+  }
+
+  series.value[0].data = [...head, {x: now.valueOf(), y: currentCaffeine.toString() }, ...tail]
+
+  drinkName.value = "";
+  drinkCaffeine.value = 200;
+}
+
+function currentCaffeineAlert() {
+  alert(user.value.observationCaffeine)
+}
+
 onMounted(async () => {
   if (import.meta.env.MODE === "development") {
     drinks.value = mockDrinkData;
@@ -95,23 +134,6 @@ onMounted(async () => {
   }
 });
 
-
-
-function addDrink() {
-  const date = new Date();
-  initTime.value = date;
-
-  drinks.value.push({
-    id: drinks.value.length + 1,
-    name: drinkName.value,
-    caffeine: drinkCaffeine.value,
-    date: date.toISOString(),
-  });
-
-  drinkName.value = "";
-  drinkCaffeine.value = 200;
-}
-
 watch(
   drinks,
   () => {
@@ -124,7 +146,7 @@ watch(
 
 <template>
   <div>
-    
+
     <h1>Welcome User: {{ user.username }}</h1>
 
     <div id="appl">
@@ -171,5 +193,6 @@ watch(
       />
       <button type="submit">Submit</button>
     </form>
+    <button @click="currentCaffeineAlert">currentCaffeine</button>
   </div>
 </template>
