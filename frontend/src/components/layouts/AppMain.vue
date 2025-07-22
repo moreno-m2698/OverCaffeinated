@@ -3,11 +3,23 @@ import { ref, watch, onMounted } from "vue";
 import axios from "axios";
 import VueApexCharts from "vue3-apexcharts";
 
-const drinks = ref<any[]>([]);
+type User = {
+  id: number,
+  username: string,
+  lastObservation: number,
+  observationCaffeine: number
+}
+
+type Drink = {
+  id: number,
+  name: string,
+  caffeine: number,
+  date: string
+}
+
+const drinks = ref<Drink[]>([]);
 const drinkName = ref("");
 const drinkCaffeine = ref(200);
-const drinkData = ref<any[]>([]);
-const user = ref<any>({});
 
 
 const today = new Date();
@@ -27,13 +39,18 @@ const mockDrinkData = [
 const mockUser = { // TODO: User is tied to app instance will need to import with props in final
   id: 1,
   username: "HelloWorld",
-  observationTime: today.valueOf(),
+  lastObservation: today.valueOf(),
   observationCaffeine: 200
 }
+
+const user = ref<User>(mockUser);
 
 const chartOptions = ref({
   chart: {
     id: 'vuechart-example'
+  },
+  dataLabels: {
+    enabled: false,
   },
   xaxis: {
     type: 'datetime',
@@ -90,11 +107,11 @@ function addDrink() {
     date: now.toISOString(),
   });
 
-  const currentCaffeine = calcCaffeine(user.value.observationCaffeine, now.valueOf() - user.value.observationTime) + drinkCaffeine.value
+  const currentCaffeine = calcCaffeine(user.value.observationCaffeine, now.valueOf() - user.value.lastObservation) + drinkCaffeine.value
   const head = series.value[0].data.filter((p) => p.x < now.valueOf())
 
   user.value.observationCaffeine = currentCaffeine
-  user.value.observationTime = now.valueOf()
+  user.value.lastObservation = now.valueOf()
 
   const remainingTime = tomorrow.valueOf() - now.valueOf();
   const init = Math.ceil(remainingTime / (1000 * 60 * 15))
@@ -121,12 +138,11 @@ function currentCaffeineAlert() {
 onMounted(async () => {
   if (import.meta.env.MODE === "development") {
     drinks.value = mockDrinkData;
-    user.value = mockUser
     console.log("Using mock data for development");
   } else {
     try {
       const response = await axios.get("/drinks/");
-      drinkData.value = response.data;
+      drinks.value = response.data;
       console.log("Fetched drink data from API");
     } catch (error) {
       console.error("Failed to fetch data:", error);
