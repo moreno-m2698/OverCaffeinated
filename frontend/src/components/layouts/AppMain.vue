@@ -7,7 +7,7 @@ type User = {
   id: number,
   username: string,
   lastObservation: number,
-  observationCaffeine: number
+  caffeine: number
 }
 
 type Drink = {
@@ -40,7 +40,7 @@ const mockUser = { // TODO: User is tied to app instance will need to import wit
   id: 1,
   username: "HelloWorld",
   lastObservation: today.valueOf(),
-  observationCaffeine: 200
+  caffeine: 200
 }
 
 const user = ref<User>(mockUser);
@@ -77,7 +77,7 @@ function getInitialData() {
 
   const data = []
   const len15Min = 1000 * 60 * 15
-  let caffeine = mockUser.observationCaffeine
+  let caffeine = mockUser.caffeine
   for ( let i = 0; i < 24 * 4; i++ ) {
     data.push({
       x: (today.valueOf() + (len15Min * i)),
@@ -97,8 +97,16 @@ const series = ref([
 
 //TODO:  A join table can be created to plot caffeine over time
 
-function addDrink() {
+async function addDrink() {
   const now = new Date();
+
+    const newDrink = {
+    name: drinkName.value,
+    caffeine: drinkCaffeine.value,
+    date: now.toISOString()
+  };
+
+  await axios.post("/api/drinks", newDrink);
 
   drinks.value.push({
     id: drinks.value.length + 1,
@@ -107,10 +115,10 @@ function addDrink() {
     date: now.toISOString(),
   });
 
-  const currentCaffeine = calcCaffeine(user.value.observationCaffeine, now.valueOf() - user.value.lastObservation) + drinkCaffeine.value
+  const currentCaffeine = calcCaffeine(user.value.caffeine, now.valueOf() - user.value.lastObservation) + drinkCaffeine.value
   const head = series.value[0].data.filter((p) => p.x < now.valueOf())
 
-  user.value.observationCaffeine = currentCaffeine
+  user.value.caffeine = currentCaffeine
   user.value.lastObservation = now.valueOf()
 
   const remainingTime = tomorrow.valueOf() - now.valueOf();
@@ -126,13 +134,13 @@ function addDrink() {
   }
 
   series.value[0].data = [...head, {x: now.valueOf(), y: currentCaffeine.toString() }, ...tail]
-
+  alert("Drink added")
   drinkName.value = "";
   drinkCaffeine.value = 200;
 }
 
 function currentCaffeineAlert() {
-  alert(user.value.observationCaffeine)
+  alert(user.value.caffeine)
 }
 
 onMounted(async () => {
@@ -153,7 +161,6 @@ watch(
   drinks,
   () => {
     console.log("Current drinks:", drinks.value);
-    console.log(new Date());
   },
   { deep: true }
 );
