@@ -1,20 +1,17 @@
-import jwt
+
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import FileResponse
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from jwt.exceptions import InvalidTokenError
-from passlib.context import CryptContext
 
 from datetime import datetime, timedelta, date, time, timezone
 import os
 import sqlite3
 
-from routers import users
+from routers import user_router, drink_router
 
 app = FastAPI()
-app.include_router(users.router)
+app.include_router(user_router)
 
 
 # Serve static assets (e.g. JS, CSS, images)
