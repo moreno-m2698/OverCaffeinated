@@ -5,7 +5,7 @@ from config import get_settings
 settings = get_settings()
 
 SCHEMA_PATH = "sql/schema.sql"
-MOCK_DATA_PATH = "sql/mock_data.sql"
+MOCK_DATA_PATH = "sql/mock_data_insert.sql"
 DB_PATH = settings.DEV_DB_PATH
 
 def run_sql_file(conn: sqlite3.Connection, filepath: str):
