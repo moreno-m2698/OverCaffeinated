@@ -3,9 +3,6 @@ import { ref, watch, onMounted } from "vue";
 import axios from "axios";
 import VueApexCharts from "vue3-apexcharts";
 
-const HL = 6 * 60 * 60 * 1000; // half-life in milliseconds
-const K = Math.log(2) / HL; // Caffeine decay constant
-
 type User = {
   id: number,
   username: string,
@@ -20,34 +17,12 @@ type Drink = {
   date: string
 }
 
-const today = new Date();
-today.setUTCHours(0);
-today.setUTCMinutes(0);
-today.setUTCSeconds(0);
-today.setUTCMilliseconds(0);
-
-const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000)
-const tomorrow = new Date(today.valueOf() + 24 * 60 * 60 * 1000)
-
-const mockDrinkData = [
-  { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
-  { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
-  { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
-];
-
-const drinks = ref<Drink[]>(mockDrinkData);
+const drinks = ref<Drink[]>([]);
 const drinkName = ref("");
 const drinkCaffeine = ref(200);
-
-const mockUser = { // TODO: User is tied to app instance will need to import with props in final
-  id: 1,
-  username: "janedoe",
-  password: "secret",
-  lastObservation: today.valueOf(),
-  caffeine: 200
-}
-
-const user = ref<User>(mockUser);
+const HL = 6 * 60 * 60 * 1000; // half-life in milliseconds
+const K = Math.log(2) / HL; // Caffeine decay constant
+const user = ref<User>();
 
 const chartOptions = ref({
   chart: {
@@ -72,10 +47,37 @@ const chartOptions = ref({
 });
 
 
+
+
+
+if (import.meta.env.MODE === "development") {
+  const today = new Date();
+  today.setUTCHours(0);
+  today.setUTCMinutes(0);
+  today.setUTCSeconds(0);
+  today.setUTCMilliseconds(0);
+
+  const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000)
+  const mockDrinkData = [
+    { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
+    { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
+    { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
+  ];
+  drinks.value = mockDrinkData
+  const mockUser = { // TODO: User is tied to app instance will need to import with props in final
+    id: 1,
+    username: "janedoe",
+    password: "secret",
+    lastObservation: today.valueOf(),
+    caffeine: 200
+  }
+
+  user.value = mockUser
+}
+
 function getSeries(caffeine: number | null = null, time: Date | null = null) {
 
 // TODO: Add a drink to drink posts
-// 
 // Validate drink object
 // True:
 //  Create new drink object
@@ -88,6 +90,11 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
   const MINUTES15 = 1000 * 60 * 15
   if (caffeine === null || time === null) {
     
+    const today = new Date();
+    today.setUTCHours(0);
+    today.setUTCMinutes(0);
+    today.setUTCSeconds(0);
+    today.setUTCMilliseconds(0);
     // Give the current series based on the users caffeine amount
     const QUARTERHOURS = 24 * 4;
 
@@ -109,7 +116,7 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
 
     const currentCaffeine = calcCaffeine(user.value.caffeine, time.valueOf() - user.value.lastObservation) + caffeine;
     res = [...series.value[0].data.filter((p) => p.x < time.valueOf())];
-    // Update the users's model
+    // Updates the user model
     user.value.caffeine = currentCaffeine;
     user.value.lastObservation = time.valueOf();
 
@@ -168,6 +175,7 @@ async function addDrink() {
 
     drinks.value.push(newDrink)
 
+    // Updates the graph data
     series.value[0].data = getSeries(drinkCaffeine.value, currentTime)
 
     drinkName.value = "";
