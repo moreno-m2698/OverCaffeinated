@@ -3,6 +3,9 @@ import { ref, watch, onMounted } from "vue";
 import axios from "axios";
 import VueApexCharts from "vue3-apexcharts";
 
+const HL = 6 * 60 * 60 * 1000; // half-life in milliseconds
+const K = Math.log(2) / HL; // Caffeine decay constant
+
 type User = {
   id: number,
   username: string,
@@ -38,7 +41,8 @@ const drinkCaffeine = ref(200);
 
 const mockUser = { // TODO: User is tied to app instance will need to import with props in final
   id: 1,
-  username: "HelloWorld",
+  username: "janedoe",
+  password: "secret",
   lastObservation: today.valueOf(),
   caffeine: 200
 }
@@ -65,79 +69,122 @@ const chartOptions = ref({
       }
     }
   }
-})
+});
 
-const HL = 6 * 60 * 60 * 1000; // half-life in milliseconds
-const K = Math.log(2) / HL; // Caffeine decay constant
-function calcCaffeine(c0: number, t: number) {
-  return c0 * Math.exp(-K * t);
-}
 
-function getInitialData() {
+function getSeries(caffeine: number | null = null, time: Date | null = null) {
 
-  const data = []
-  const len15Min = 1000 * 60 * 15
-  let caffeine = mockUser.caffeine
-  for ( let i = 0; i < 24 * 4; i++ ) {
-    data.push({
-      x: (today.valueOf() + (len15Min * i)),
-      y: calcCaffeine(caffeine, i * len15Min).toFixed(2)
-    })
+// TODO: Add a drink to drink posts
+// 
+// Validate drink object
+// True:
+//  Create new drink object
+//  Add drink object to drink posts
+//  Update series for graph
+// False:
+//  Send a 400 code
+
+  let res = []
+  const MINUTES15 = 1000 * 60 * 15
+  if (caffeine === null || time === null) {
+    
+    // Give the current series based on the users caffeine amount
+    const QUARTERHOURS = 24 * 4;
+
+    for (let i = 0; i < QUARTERHOURS; i++) {
+      res.push({
+        x: today.valueOf() + (MINUTES15 * i),
+        y: calcCaffeine(user.value.caffeine, MINUTES15 * i)
+      });
+    }
+
+    return res;
   }
-  
-  return data;
+
+  else {
+    if (series.value[0].data === undefined) {
+      console.log("SOMETHING VERY BAD HAS HAPPENED")
+      return
+    }
+
+    const currentCaffeine = calcCaffeine(user.value.caffeine, time.valueOf() - user.value.lastObservation) + caffeine;
+    res = [...series.value[0].data.filter((p) => p.x < time.valueOf())];
+    // Update the users's model
+    user.value.caffeine = currentCaffeine;
+    user.value.lastObservation = time.valueOf();
+
+    for (let i = 0; i < 24 * 4; i++) {
+      res.push({
+        x: time.valueOf() + (MINUTES15 * i),
+        y: calcCaffeine(currentCaffeine, MINUTES15 * i)
+      })
+    }
+
+    return res
+  }
 }
 
 const series = ref([
   {
     name: 'caffeine',
-    data: getInitialData()
+    data: getSeries()
   }
-])
+]);
 
-//TODO:  A join table can be created to plot caffeine over time
+
+function calcCaffeine(c0: number, t: number) {
+  return c0 * Math.exp(-K * t);
+}
 
 async function addDrink() {
-  const now = new Date();
+  
+  const errors = []
 
-    const newDrink = {
-    name: drinkName.value,
-    caffeine: drinkCaffeine.value,
-    date: now.toISOString()
-  };
+  if (import.meta.env.MODE === "development") {
+    if (!drinkName.value || drinkName.value.length < 0) {
+      errors.push("Invalid drink name");
+    }
 
-  await axios.post("/api/drinks", newDrink);
+    if (typeof drinkCaffeine.value !== "number" || isNaN(drinkCaffeine.value)) {
+      errors.push("Caffeine must be numeric");
 
-  drinks.value.push({
-    id: drinks.value.length + 1,
-    name: drinkName.value,
-    caffeine: drinkCaffeine.value,
-    date: now.toISOString(),
-  });
+    } else if (drinkCaffeine.value < 0) {
+      errors.push("Caffeine cannot be negative");
+    }
 
-  const currentCaffeine = calcCaffeine(user.value.caffeine, now.valueOf() - user.value.lastObservation) + drinkCaffeine.value
-  const head = series.value[0].data.filter((p) => p.x < now.valueOf())
+    if (errors.length > 0 ) {
+      console.log("Errors: " + errors)
+      return; 
+    }
 
-  user.value.caffeine = currentCaffeine
-  user.value.lastObservation = now.valueOf()
+    const currentTime = new Date();
 
-  const remainingTime = tomorrow.valueOf() - now.valueOf();
-  const init = Math.ceil(remainingTime / (1000 * 60 * 15))
-  const tail = []
-  const len15Min = 1000 * 60 * 15
+    const newDrink: Drink = {
+      id: drinks.value.length + 1,
+      name: drinkName.value,
+      caffeine: drinkCaffeine.value,
+      date: currentTime.toISOString()
+    }
 
-  for (let i = init; i <= 24 * 4; i++) {
-    tail.push({
-      x: (today.valueOf() + (len15Min * i)),
-      y: calcCaffeine(currentCaffeine, (i - init) * len15Min).toFixed(2)
-    })
+    drinks.value.push(newDrink)
+
+    series.value[0].data = getSeries(drinkCaffeine.value, currentTime)
+
+    drinkName.value = "";
+    drinkCaffeine.value = 0;
   }
+  
+  else {
 
-  series.value[0].data = [...head, {x: now.valueOf(), y: currentCaffeine.toString() }, ...tail]
-  alert("Drink added")
-  drinkName.value = "";
-  drinkCaffeine.value = 200;
+  }
 }
+
+// TODO: Create function to update the series being shown in the app
+// 
+// 2. Find caffeine at current time
+// 3. Add new caffeine to current time
+// 4. Delete all points after current time
+// 5. Add new points
 
 function currentCaffeineAlert() {
   alert(user.value.caffeine)
