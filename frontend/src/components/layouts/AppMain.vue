@@ -3,6 +3,8 @@ import { ref, watch, onMounted } from "vue";
 import axios from "axios";
 import VueApexCharts from "vue3-apexcharts";
 
+import DrinkForm from "../index/DrinkForm.vue";
+
 type User = {
   id: number,
   username: string,
@@ -18,9 +20,6 @@ type Drink = {
 }
 
 const drinks = ref<Drink[]>([]);
-const drinkName = ref("");
-const drinkCaffeine = ref(200);
-
 const user = ref<User>();
 
 const chartOptions = ref({
@@ -57,41 +56,13 @@ type Point = {
 
 const series = ref<Series[]>([
   {
-    name: 'caffeine',
+    name: '',
     data: []
   }
 ]);
 
 const HL = 6 * 60 * 60 * 1000; // half-life in milliseconds
 const K = Math.log(2) / HL; // Caffeine decay constant
-
-if (import.meta.env.MODE === "development") {
-  const today = new Date();
-  today.setUTCHours(0);
-  today.setUTCMinutes(0);
-  today.setUTCSeconds(0);
-  today.setUTCMilliseconds(0);
-
-  const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000)
-  const mockDrinkData = [
-    { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
-    { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
-    { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
-  ];
-  drinks.value = mockDrinkData
-  const mockUser = { // TODO: User is tied to app instance will need to import with props in final
-    id: 1,
-    username: "janedoe",
-    password: "secret",
-    lastObservation: today.valueOf(),
-    caffeine: 200
-  }
-
-  user.value = mockUser
-
-  series.value[0].data = getSeries()
-
-}
 
 function getSeries(caffeine: number | null = null, time: Date | null = null) {
 
@@ -107,9 +78,9 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
     today.setUTCMilliseconds(0);
 
     // Give the current series based on the users caffeine amount
-    const QUARTERHOURS = 24 * 4;
+    const AMOUNT15MINUTEINTERVALSINDAY = 24 * 4;
 
-    for (let i = 0; i < QUARTERHOURS; i++) {
+    for (let i = 0; i < AMOUNT15MINUTEINTERVALSINDAY; i++) {
       res.push({
         x: today.valueOf() + (MINUTES15 * i),
         y: calcCaffeine(user.value!.caffeine, MINUTES15 * i)
@@ -127,11 +98,13 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
 
     const currentCaffeine = calcCaffeine(user.value!.caffeine, time.valueOf() - user.value!.lastObservation) + caffeine;
     res = [...series.value[0].data.filter((p) => p.x < time.valueOf())];
+
     // Updates the user model
     user.value!.caffeine = currentCaffeine;
     user.value!.lastObservation = time.valueOf();
 
     for (let i = 0; i < 24 * 4; i++) {
+      
       res.push({
         x: time.valueOf() + (MINUTES15 * i),
         y: calcCaffeine(currentCaffeine, MINUTES15 * i)
@@ -142,67 +115,96 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
   }
 }
 
-
-
-
 function calcCaffeine(c0: number, t: number) {
   return c0 * Math.exp(-K * t);
 }
 
-async function addDrink() {
-  
-  const errors = []
-
-  if (import.meta.env.MODE === "development") {
-    if (!drinkName.value || drinkName.value.length < 0) {
-      errors.push("Invalid drink name");
-    }
-
-    if (typeof drinkCaffeine.value !== "number" || isNaN(drinkCaffeine.value)) {
-      errors.push("Caffeine must be numeric");
-
-    } else if (drinkCaffeine.value < 0) {
-      errors.push("Caffeine cannot be negative");
-    }
-
-    if (errors.length > 0 ) {
-      console.log("Errors: " + errors)
-      return; 
-    }
-
-    const currentTime = new Date();
-
-    const newDrink: Drink = {
+function postDrink(name: string, caffeine: number) {
+  if (import.meta.env.MODE = "development") {
+    const current = new Date(); 
+    const drink: Drink = {
       id: drinks.value.length + 1,
-      name: drinkName.value,
-      caffeine: drinkCaffeine.value,
-      date: currentTime.toISOString()
-    }
+      name: name,
+      caffeine: caffeine,
+      date: current.toISOString()
+    };
+    
+    drinks.value.push(drink);
 
-    drinks.value.push(newDrink)
-
-    // Updates the graph data
-    series.value[0].data = getSeries(drinkCaffeine.value, currentTime)
-
-    drinkName.value = "";
-    drinkCaffeine.value = 0;
+    series.value[0].data = getSeries(caffeine, current);
   }
-  
+
   else {
 
   }
-}
 
-// TODO: Create function to update the series being shown in the app
-// 
-// 2. Find caffeine at current time
-// 3. Add new caffeine to current time
-// 4. Delete all points after current time
-// 5. Add new points
+}
 
 function currentCaffeineAlert() {
   alert(user.value!.caffeine)
 }
+
+
+function init() {
+  if (import.meta.env.MODE === "development") {
+    const today = new Date();
+    today.setUTCHours(0);
+    today.setUTCMinutes(0);
+    today.setUTCSeconds(0);
+    today.setUTCMilliseconds(0);
+
+    const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000)
+    const mockDrinkData = [
+      { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
+      { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
+      { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
+    ];
+    drinks.value = mockDrinkData
+    const mockUser = { // TODO: User is tied to app instance will need to import with props in final
+      id: 1,
+      username: "janedoe",
+      password: "secret",
+      lastObservation: today.valueOf(),
+      caffeine: 200
+    }
+
+    user.value = mockUser
+
+    series.value[0].data = getSeries()
+    series.value[0].name = "caffeine"
+
+  }
+
+  else {
+    const today = new Date();
+    today.setUTCHours(0);
+    today.setUTCMinutes(0);
+    today.setUTCSeconds(0);
+    today.setUTCMilliseconds(0);
+
+    const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000)
+    const mockDrinkData = [
+      { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
+      { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
+      { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
+    ];
+    drinks.value = mockDrinkData
+    const mockUser = { // TODO: User is tied to app instance will need to import with props in final
+      id: 1,
+      username: "janedoe",
+      password: "secret",
+      lastObservation: today.valueOf(),
+      caffeine: 200
+    }
+
+    user.value = mockUser
+
+    series.value[0].data = getSeries()
+    series.value[0].name = "caffeine"
+  }
+}
+
+init()
 
 onMounted(async () => {
   if (import.meta.env.MODE === "development") {
@@ -257,25 +259,7 @@ watch(
         </tr>
       </tbody>
     </table>
-
-    <form @submit.prevent="addDrink">
-      <input
-        name="drink"
-        type="text"
-        v-model="drinkName"
-        placeholder="Drink name"
-        required
-      />
-      <input
-        name="caffeine"
-        type="number"
-        v-model="drinkCaffeine"
-        min="0"
-        step="0.1"
-        required
-      />
-      <button type="submit">Submit</button>
-    </form>
+    <DrinkForm @submit="postDrink"/>
     <button @click="currentCaffeineAlert">currentCaffeine</button>
   </div>
 </template>
