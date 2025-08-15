@@ -3,6 +3,7 @@ PRAGMA foreign_keys = ON;
 
 -- Insert users
 INSERT INTO users (username, hashed_password, caffeine, last_observed) VALUES
+-- Password is secret
 ('janedoe', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 180, NULL);
 
 -- Insert drinks

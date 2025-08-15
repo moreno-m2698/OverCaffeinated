@@ -20,8 +20,7 @@ type Drink = {
 const drinks = ref<Drink[]>([]);
 const drinkName = ref("");
 const drinkCaffeine = ref(200);
-const HL = 6 * 60 * 60 * 1000; // half-life in milliseconds
-const K = Math.log(2) / HL; // Caffeine decay constant
+
 const user = ref<User>();
 
 const chartOptions = ref({
@@ -46,9 +45,25 @@ const chartOptions = ref({
   }
 });
 
+type Series = {
+  name: string,
+  data: Point[] | undefined
+}
 
+type Point = {
+  x: any,
+  y: any
+}
 
+const series = ref<Series[]>([
+  {
+    name: 'caffeine',
+    data: []
+  }
+]);
 
+const HL = 6 * 60 * 60 * 1000; // half-life in milliseconds
+const K = Math.log(2) / HL; // Caffeine decay constant
 
 if (import.meta.env.MODE === "development") {
   const today = new Date();
@@ -73,21 +88,16 @@ if (import.meta.env.MODE === "development") {
   }
 
   user.value = mockUser
+
+  series.value[0].data = getSeries()
+
 }
 
 function getSeries(caffeine: number | null = null, time: Date | null = null) {
 
-// TODO: Add a drink to drink posts
-// Validate drink object
-// True:
-//  Create new drink object
-//  Add drink object to drink posts
-//  Update series for graph
-// False:
-//  Send a 400 code
-
   let res = []
   const MINUTES15 = 1000 * 60 * 15
+
   if (caffeine === null || time === null) {
     
     const today = new Date();
@@ -95,13 +105,14 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
     today.setUTCMinutes(0);
     today.setUTCSeconds(0);
     today.setUTCMilliseconds(0);
+
     // Give the current series based on the users caffeine amount
     const QUARTERHOURS = 24 * 4;
 
     for (let i = 0; i < QUARTERHOURS; i++) {
       res.push({
         x: today.valueOf() + (MINUTES15 * i),
-        y: calcCaffeine(user.value.caffeine, MINUTES15 * i)
+        y: calcCaffeine(user.value!.caffeine, MINUTES15 * i)
       });
     }
 
@@ -114,11 +125,11 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
       return
     }
 
-    const currentCaffeine = calcCaffeine(user.value.caffeine, time.valueOf() - user.value.lastObservation) + caffeine;
+    const currentCaffeine = calcCaffeine(user.value!.caffeine, time.valueOf() - user.value!.lastObservation) + caffeine;
     res = [...series.value[0].data.filter((p) => p.x < time.valueOf())];
     // Updates the user model
-    user.value.caffeine = currentCaffeine;
-    user.value.lastObservation = time.valueOf();
+    user.value!.caffeine = currentCaffeine;
+    user.value!.lastObservation = time.valueOf();
 
     for (let i = 0; i < 24 * 4; i++) {
       res.push({
@@ -131,12 +142,7 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
   }
 }
 
-const series = ref([
-  {
-    name: 'caffeine',
-    data: getSeries()
-  }
-]);
+
 
 
 function calcCaffeine(c0: number, t: number) {
@@ -195,7 +201,7 @@ async function addDrink() {
 // 5. Add new points
 
 function currentCaffeineAlert() {
-  alert(user.value.caffeine)
+  alert(user.value!.caffeine)
 }
 
 onMounted(async () => {
@@ -224,7 +230,7 @@ watch(
 <template>
   <div>
 
-    <h1>Welcome User: {{ user.username }}</h1>
+    <h1>Welcome User: {{ user!.username }}</h1>
 
     <div id="appl">
       <VueApexCharts
