@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from "vue";
+
 import axios from "axios";
 import VueApexCharts from "vue3-apexcharts";
 
+import CaffieneGraph from "../index/CaffieneGraph.vue";
 import DrinkForm from "../index/DrinkForm.vue";
 
 type User = {
@@ -22,36 +24,14 @@ type Drink = {
 const drinks = ref<Drink[]>([]);
 const user = ref<User>();
 
-const chartOptions = ref({
-  chart: {
-    id: 'vuechart-example'
-  },
-  dataLabels: {
-    enabled: false,
-  },
-  xaxis: {
-    type: 'datetime',
-    labels: {
-      datetimeFormatter: { // This is formatted to utc
-        year: 'yyyy',
-        month: "MMM 'yy",
-        day: 'dd MMM',
-        hour: 'HH:mm',
-        minute: 'HH:mm:ss TT',
-        second: 'HH:mm:ss TT',
-      }
-    }
-  }
-});
-
 type Series = {
-  name: string,
-  data: Point[] | undefined
+  name?: string,
+  data?: Point[]
 }
 
 type Point = {
-  x: any,
-  y: any
+  x: number,
+  y: number
 }
 
 const series = ref<Series[]>([
@@ -233,15 +213,7 @@ watch(
   <div>
 
     <h1>Welcome User: {{ user!.username }}</h1>
-
-    <div id="appl">
-      <VueApexCharts
-        type="area"
-        height="350"
-        :options="chartOptions"
-        :series="series"
-      />
-    </div>
+    <CaffieneGraph :series="series"/>
 
     <table>
       <thead>
