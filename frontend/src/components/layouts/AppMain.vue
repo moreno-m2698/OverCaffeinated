@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import IndexView from "../../views/index/IndexView.vue";
-import LoginView from "../../views/login/LoginView.vue";
 
+import { onMounted } from "vue"
 import { useAuthStore } from "../../stores/auth";
 
-const store = useAuthStore();
-
+const auth = useAuthStore()
+onMounted(() => {
+  auth.fetchUser()
+})
 </script>
 
 <template>
-  <IndexView />
-  <LoginView />
+  <RouterView />
 </template>

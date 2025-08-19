@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from "vue";
+import { useAuthStore } from "../../stores/auth";
 
 import axios from "axios";
 
 import CaffieneGraph from "./components/CaffieneGraph.vue";
 import DrinkForm from "./components/DrinkForm.vue";
 
-type User = {
-  id: number,
-  username: string,
-  lastObservation: number,
-  caffeine: number
-}
+const store = useAuthStore()
 
 type Drink = {
   id: number,
@@ -21,7 +17,6 @@ type Drink = {
 }
 
 const drinks = ref<Drink[]>([]);
-const user = ref<User>();
 
 type Series = {
   name?: string,
@@ -62,7 +57,7 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
     for (let i = 0; i < AMOUNT15MINUTEINTERVALSINDAY; i++) {
       res.push({
         x: today.valueOf() + (MINUTES15 * i),
-        y: calcCaffeine(user.value!.caffeine, MINUTES15 * i)
+        y: calcCaffeine(store.user?.caffeine, MINUTES15 * i)
       });
     }
 
@@ -75,12 +70,12 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
       return
     }
 
-    const currentCaffeine = calcCaffeine(user.value!.caffeine, time.valueOf() - user.value!.lastObservation) + caffeine;
+    const currentCaffeine = calcCaffeine(store.user?.caffeine, time.valueOf() - user.value!.lastObservation) + caffeine;
     res = [...series.value[0].data.filter((p) => p.x < time.valueOf())];
 
     // Updates the user model
-    user.value!.caffeine = currentCaffeine;
-    user.value!.lastObservation = time.valueOf();
+    store.user.caffeine = currentCaffeine;
+    store.user.lastObservation = time.valueOf();
 
     for (let i = 0; i < 24 * 4; i++) {
       
@@ -120,7 +115,7 @@ async function postDrink(name: string, caffeine: number) {
 }
 
 function currentCaffeineAlert() {
-  alert(user.value!.caffeine)
+  alert(store.user.caffeine)
 }
 
 
@@ -139,15 +134,6 @@ function init() {
       { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
     ];
     drinks.value = mockDrinkData
-    const mockUser = { // TODO: User is tied to app instance will need to import with props in final
-      id: 1,
-      username: "janedoe",
-      password: "secret",
-      lastObservation: today.valueOf(),
-      caffeine: 200
-    }
-
-    user.value = mockUser
 
     series.value[0].data = getSeries()
     series.value[0].name = "caffeine"
@@ -167,16 +153,8 @@ function init() {
       { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
       { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
     ];
+    
     drinks.value = mockDrinkData
-    const mockUser = { // TODO: User is tied to app instance will need to import with props in final
-      id: 1,
-      username: "janedoe",
-      password: "secret",
-      lastObservation: today.valueOf(),
-      caffeine: 200
-    }
-
-    user.value = mockUser
 
     series.value[0].data = getSeries()
     series.value[0].name = "caffeine"
@@ -211,7 +189,7 @@ watch(
 <template>
   <div>
 
-    <h1>Welcome User: {{ user!.username }}</h1>
+    <h1>Welcome User: {{ store.user?.username }}</h1>
     <CaffieneGraph :series="series"/>
     <!-- Remove this table later -->
     <table>
