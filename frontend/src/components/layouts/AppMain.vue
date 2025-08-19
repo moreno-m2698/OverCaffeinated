@@ -10,5 +10,5 @@ onMounted(() => {
 </script>
 
 <template>
-  <RouterView />
-</template>
+  <router-view v-if="!auth.loading" />
+</template> 
