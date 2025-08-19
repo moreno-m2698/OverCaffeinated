@@ -213,7 +213,7 @@ watch(
 
     <h1>Welcome User: {{ user!.username }}</h1>
     <CaffieneGraph :series="series"/>
-
+    <!-- Remove this table later -->
     <table>
       <thead>
         <tr>
