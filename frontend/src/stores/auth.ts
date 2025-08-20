@@ -1,6 +1,8 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 
+const ADMIN = true;
+
 type User = {
   id: number;
   username: string;
@@ -16,6 +18,15 @@ export const useAuthStore = defineStore("auth", () => {
   function login(username: string, password: string) {
     // For testing: mock user login
     if (import.meta.env.MODE === "development") {
+      if (ADMIN) {
+        user.value = {
+          id: 1,
+          username: "janedoe",
+          caffeine: 200,
+          lastObservation: Date.now(),
+        };
+        return true;
+      }
       if (username === "janedoe" && password === "secret") {
         user.value = {
           id: 1,

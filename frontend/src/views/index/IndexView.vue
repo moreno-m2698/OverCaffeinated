@@ -3,7 +3,7 @@ import { ref, watch, onMounted } from "vue";
 import { useAuthStore } from "../../stores/auth";
 import axios from "axios";
 
-import CaffieneGraph from "./components/CaffieneGraph.vue";
+import CaffeineGraph from "./components/CaffeineGraph.vue";
 import DrinkForm from "./components/DrinkForm.vue";
 
 const store = useAuthStore();
@@ -31,7 +31,7 @@ function calcCaffeine(c0: number, t: number) {
 
 function getSeries(caffeine: number | null = null, time: Date | null = null) {
   const res: Point[] = [];
-  const MINUTES15 = 1000 * 60 * 15;
+  const MINUTES30 = 1000 * 60 * 30;
   const userCaffeine = store.user?.caffeine ?? 0;
   const userLastObs = store.user?.lastObservation ?? 0;
 
@@ -39,10 +39,10 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    for (let i = 0; i < 24 * 4; i++) {
+    for (let i = 0; i < 24 * 2; i++) {
       res.push({
-        x: today.valueOf() + MINUTES15 * i,
-        y: calcCaffeine(userCaffeine, MINUTES15 * i),
+        x: today.valueOf() + MINUTES30 * i,
+        y: calcCaffeine(userCaffeine, MINUTES30 * i),
       });
     }
     return res;
@@ -50,21 +50,19 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
     const currentCaffeine =
       calcCaffeine(userCaffeine, time.valueOf() - userLastObs) + caffeine;
 
-    // update user state
     if (store.user) {
       store.user.caffeine = currentCaffeine;
       store.user.lastObservation = time.valueOf();
     }
 
-    // rebuild series from new event time forward
     const oldData = series.value[0].data ?? [];
     const before = oldData.filter((p) => p.x < time.valueOf());
     const after: Point[] = [];
 
-    for (let i = 0; i < 24 * 4; i++) {
+    for (let i = 0; i < 24 * 2; i++) {
       after.push({
-        x: time.valueOf() + MINUTES15 * i,
-        y: calcCaffeine(currentCaffeine, MINUTES15 * i),
+        x: time.valueOf() + MINUTES30 * i,
+        y: calcCaffeine(currentCaffeine, MINUTES30 * i),
       });
     }
 
@@ -72,6 +70,7 @@ function getSeries(caffeine: number | null = null, time: Date | null = null) {
   }
 }
 
+// Something broke here
 async function postDrink(name: string, caffeine: number) {
   if (import.meta.env.MODE === "development") {
     const current = new Date();
@@ -104,6 +103,7 @@ function init() {
   const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000);
 
   if (import.meta.env.MODE === "development") {
+    // Mock data
     drinks.value = [
       { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
       { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
@@ -142,7 +142,7 @@ watch(
 <template>
   <div>
     <h1>Welcome User: {{ store.user?.username }}</h1>
-    <CaffieneGraph :series="series" />
+    <CaffeineGraph :series="series" />
 
     <table>
       <thead>
