@@ -14,6 +14,7 @@ type Drink = {
   name: string;
   caffeine: number;
   date: string;
+  userId: number
 };
 type Point = { x: number; y: number };
 type Series = { name?: string; data?: Point[] };
@@ -91,6 +92,7 @@ async function postDrink(name: string, caffeine: number) {
       name,
       caffeine,
       date: current.toISOString(),
+      userId: 1
     };
     drinks.value.push(drink);
     series.value[0].data = getSeries(caffeine, current);
@@ -105,30 +107,24 @@ async function postDrink(name: string, caffeine: number) {
   }
 }
 
-function init() {
- 
+onMounted(async () => {
   if (import.meta.env.MODE === "development") {
+
+    console.log("Using mock data for development");
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000);
-
-    drinks.value = [
-      { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
-      { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
-      { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString() },
+    drinks.value = drinks.value = [
+      { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString(), userId: 1 },
+      { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString(), userId: 1 },
+      { id: 3, name: "Cold Brew", caffeine: 200, date: yesterday.toISOString(), userId: 1 },
     ];
+
     series.value[0].data = getSeries();
-  }
-}
 
-init();
-
-onMounted(async () => {
-  if (import.meta.env.MODE === "development") {
-    console.log("Using mock data for development");
   } else {
     try {
-      const response = await axios.get("/api/drinks/");
+      const response = await axios.get("/api/drinks?userId="+store.user!.id);
       drinks.value = response.data;
       series.value[0].data = getSeries();
       console.log("Fetched drink data from API");
@@ -141,7 +137,10 @@ onMounted(async () => {
 watch(
   drinks,
   () => {
-    console.log("Current drinks:", drinks.value);
+    if (import.meta.env.MODE === "development") {
+      // when drinks are added we want to update the user's 
+      // caffeine & observation time
+    }
   },
   { deep: true }
 );
