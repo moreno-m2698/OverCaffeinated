@@ -1,56 +1,53 @@
-import { defineStore } from "pinia"
-import { ref } from "vue"
-import axios from "axios"
+import { ref } from "vue";
+import { defineStore } from "pinia";
 
-axios.defaults.withCredentials = true
+type User = {
+  id: number;
+  username: string;
+  caffeine: number;
+  lastObservation: number;
+};
 
 export const useAuthStore = defineStore("auth", () => {
-  type User = {
-    id: number
-    username: string
-    lastObservation: number
-    caffeine: number
-  }
+  // --- State ---
+  const user = ref<User | null>(null);
 
-  const user = ref<User | null>(null)
-  const loading = ref(true)
-
-  // Helper to generate a mock user in dev
-  function createMockUser(): User {
-    const today = new Date()
-    today.setUTCHours(0, 0, 0, 0)
-
-    return {
-      id: 1,
-      username: "janedoe",
-      lastObservation: today.valueOf(),
-      caffeine: 200
-    }
-  }
-
-  async function fetchUser() {
-    loading.value = true
+  // --- Actions ---
+  function login(username: string, password: string) {
+    // For testing: mock user login
     if (import.meta.env.MODE === "development") {
-      user.value = createMockUser()
-      loading.value = false
-    } else {
-      try {
-        const res = await axios.get("/users/me")
-        user.value = res.data
-      } catch {
-        user.value = null
-      } finally {
-        loading.value = false
+      if (username === "janedoe" && password === "secret") {
+        user.value = {
+          id: 1,
+          username,
+          caffeine: 200,
+          lastObservation: Date.now(),
+        };
+        console.log("Mock user logged in:", user.value);
+        return true;
       }
+      
+      console.log("Failed to log in mock user")
+      return false;
     }
+
+    // TODO: Replace with real API call for production
+    console.log("Would send credentials to backend:", { username, password });
+    return false;
   }
 
-  async function logout() {
-    if (import.meta.env.MODE !== "development") {
-      await axios.post("/logout")
-    }
-    user.value = null
+  function logout() {
+    user.value = null;
+    console.log("User logged out");
   }
 
-  return { user, loading, fetchUser, logout }
-})
+  // --- Getters ---
+  const isAuthenticated = () => user.value !== null;
+
+  return {
+    user,
+    login,
+    logout,
+    isAuthenticated,
+  };
+});
