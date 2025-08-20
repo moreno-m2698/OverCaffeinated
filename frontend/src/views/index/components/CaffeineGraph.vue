@@ -14,7 +14,7 @@ type Point = {
 }
 
 defineProps<{
-    series: Series
+  series: Series
 }>()
 
 const today = new Date()

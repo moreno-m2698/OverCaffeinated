@@ -5,6 +5,7 @@ import axios from "axios";
 
 import CaffeineGraph from "./components/CaffeineGraph.vue";
 import DrinkForm from "./components/DrinkForm.vue";
+import DrinkFeed from "./components/DrinkFeed.vue";
 
 const store = useAuthStore();
 
@@ -14,12 +15,10 @@ type Drink = {
   caffeine: number;
   date: string;
 };
-
-const drinks = ref<Drink[]>([]);
-
 type Point = { x: number; y: number };
 type Series = { name?: string; data?: Point[] };
 
+const drinks = ref<Drink[]>([]);
 const series = ref<Series[]>([{ name: "caffeine", data: [] }]);
 
 const HL = 6 * 60 * 60 * 1000; // half-life in ms
@@ -28,6 +27,19 @@ const K = Math.log(2) / HL;    // decay constant
 function calcCaffeine(c0: number, t: number) {
   return c0 * Math.exp(-K * t);
 }
+
+// TODO: Component mounting ( I should display the component whether or not 
+// the data has come in yet)
+// Series: Needs ability to listen when a drink is added/user checks caffeine
+// Display a loading box until:
+// Mount Series:
+//  Request series data from server
+//  Display Data
+
+// Feed:
+// Display loading boxes:
+// Mount:
+//  
 
 function getSeries(caffeine: number | null = null, time: Date | null = null) {
   const res: Point[] = [];
@@ -93,17 +105,13 @@ async function postDrink(name: string, caffeine: number) {
   }
 }
 
-function currentCaffeineAlert() {
-  alert(store.user?.caffeine ?? 0);
-}
-
 function init() {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000);
-
+ 
   if (import.meta.env.MODE === "development") {
-    // Mock data
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const yesterday = new Date(today.valueOf() - 24 * 60 * 60 * 1000);
+
     drinks.value = [
       { id: 1, name: "Espresso", caffeine: 80, date: yesterday.toISOString() },
       { id: 2, name: "Latte", caffeine: 100, date: yesterday.toISOString() },
@@ -143,25 +151,7 @@ watch(
   <div>
     <h1>Welcome User: {{ store.user?.username }}</h1>
     <CaffeineGraph :series="series" />
-
-    <table>
-      <thead>
-        <tr>
-          <th>Drink/ID</th>
-          <th>Caffeine (mg)</th>
-          <th>Date/Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="drink in drinks" :key="drink.id">
-          <td>{{ drink.name }} (ID: {{ drink.id }})</td>
-          <td>{{ drink.caffeine }}mg</td>
-          <td>{{ drink.date }}</td>
-        </tr>
-      </tbody>
-    </table>
-
+    <DrinkFeed :drinks="drinks"/>
     <DrinkForm @submit="postDrink" />
-    <button @click="currentCaffeineAlert">Current Caffeine</button>
   </div>
 </template>
